@@ -15,7 +15,7 @@
     "class-methods-use-this": "off",
     "prefer-destructuring": ["error", { "object": true, "array": true }],
     "no-unused-vars": ["error", { "argsIgnorePattern": "req|res|next|val" }],
-    "trailingComma": "none",
+    "trailingComma": "0",
     "jsxBracketSameLine": "true"
   }
 }
