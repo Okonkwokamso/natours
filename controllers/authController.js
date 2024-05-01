@@ -6,6 +6,7 @@ const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 const sendEmail = require("../utils/email");
 
+
 const signToken = id => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "90d" });
 };
@@ -53,12 +54,32 @@ exports.login = catchAsync(async (req, res, next) => {
   const user = await User.findOne({ email }).select('+password');
 
   if (!user || !(await user.correctPassword(password, user.password))) {
-    return next(new AppError('Incorrect email or password', 401))
+    return next(new AppError('Incorrect email or password :(', 401))
   }
 
   // 3) If everything is ok send token to client
   createSendToken(user, 200, res);
 });
+
+// exports.logout = (req, res) => {
+//   res.cookie('jwt', 'Loggedout', {
+//     expires: new Date(Date.now() + 10 * 1000),
+//     httpOnly: true
+//   });
+//   res.status(200).json({
+//     status: 'success' 
+//   })
+// };
+
+exports.logout = (req, res) => {
+  res.cookie('jwt', ' ', {
+    expires: new Date(0),
+    httpOnly: true
+  });
+  res.status(200).json({
+    status: 'SUCcess' 
+  })
+};
 
 exports.protect = catchAsync(async (req, res, next) => {
   // 1) Get token and check if it's there
@@ -84,48 +105,68 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
 
   // 4) Check if user changed password after the token was issued   
-  currentUser.changedPasswordAfter();
+  const { passwordChangedAt } = currentUser;
+
+  if (passwordChangedAt && new Date(req.user.iat * 1000) < passwordChangedAt) {
+    return next(new AppError("Unauthorized - Password has been changed"))  
+  }
+
+  console.log('Access granted to protected route' );
 
   // if (currentUser.changedPasswordAfter(decoded.iat)) {
   //   return next(new AppError('User recently changed password! Please log in again.', 401))
   // };
   
   // Access granted to route
-  req.user = currentUser;
+  //req.user = currentUser;
+  res.locals.user = currentUser;
   next();
 });
 
 // Only for rendered pages, no errors
-exports.isLoggedIn = catchAsync(async (req, res, next) => {
+exports.isLoggedIn = async (req, res, next) => {
   if (req.cookies.jwt) {
-    // 1) Verify token
-    const decoded = await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET);
-    console.log(decoded);
+    try {
+      // 1) Verify token
+      const decoded = await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET);
+      // console.log(decoded);
 
-    // 2) Check if user still exists
-    const currentUser = await User.findById(decoded.id);
-    console.log(currentUser);
-    if (!currentUser) {
+      // 2) Check if user still exists
+      const currentUser = await User.findById(decoded.id);
+      //console.log(currentUser);
+      if (!currentUser) {
+        return next();
+      }
+
+
+      // 3) Check if user changed password after the token was issued 
+      const { passwordChangedAt } = currentUser;
+
+      if (passwordChangedAt && new Date(req.user.iat * 1000) < passwordChangedAt) {
+        return next()  
+      }
+
+      console.log('Access granted to protected route' ); 
+
+      // if (currentUser.changedPasswordAfter()) {
+      //   return next();
+      // } 
+
+      // if (currentUser.changedPasswordAfter(decoded.iat)) {
+      //   return next(new AppError('User recently changed password! Please log in again.', 401))
+      // };
+      
+      // Grant access granted to route
+      res.locals.user = currentUser;
+
+      return next();
+    } catch (error) {
       return next();
     }
 
-    // 3) Check if user changed password after the token was issued  
-    if (currentUser.changedPasswordAfter()) {
-      return next();
-    } 
-
-    // if (currentUser.changedPasswordAfter(decoded.iat)) {
-    //   return next(new AppError('User recently changed password! Please log in again.', 401))
-    // };
-    
-    
-    // Grant access granted to route
-    res.locals.user = currentUser;
-    //console.log(res.locals.user);
-    return next();
   }
   next();
-});
+};
 
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
@@ -171,7 +212,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     })
 
     return next(new AppError('There was an error sending the email. Try again later!'), 500);
-})
+  })
 
 
   // try {

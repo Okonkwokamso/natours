@@ -79,37 +79,42 @@ userSchema.pre(/^find/, function (next) {
 });
 
 
+// const payload = {
+//   user: {
+//     id: User.id,
+//     username: User.username,
+//     lastPasswordChange: User.passwordChangedAt.getTime(),
+//   },
+// };
+
+// userSchema.methods.payload = async function () {
+
+// };
+
 // Creating instance method (instance method is available on all the user documents)
 userSchema.methods.correctPassword = async function (candidatePassword, userPassword) {
   return await bcrypt.compare(candidatePassword, userPassword)  
 };
 
-userSchema.methods.changedPasswordAfter = async function (req, res, next) {
-  // if (this.passwordChangedAt) {
-  //   const changedTimeStamp = parseInt(this.passwordChangedAt.getTime() / 1000, 10);
-  //   console.log(changedTimeStamp);
-  //   return JWTTimeStamp < changedTimeStamp;
-  // }
 
-  // //False means not changed password after token was issued
-  // //return false;
+// userSchema.methods.changedPasswordAfter = async function (req, res, next) {
+//   // if (this.passwordChangedAt) {
+//   //   const changedTimeStamp = parseInt(this.passwordChangedAt.getTime() / 1000, 10);
+//   //   console.log(changedTimeStamp);
+//   //   return JWTTimeStamp < changedTimeStamp;
+//   // }
 
+//   // //False means not changed password after token was issued
+//   // //return false;
 
-  //const { passwordChangedAt } = req.user;
-  
-  const changedTimeStamp = parseInt(this.passwordChangedAt.getTime(), 10);
-  if (new Date(req.user.iat * 1000) < changedTimeStamp) {
-    //return res.status(401).json({ message: 'Unauthorized - Password has been changed' });
-    return next(new AppError('User recently changed password! Please log in again.', 401))
-  }
+//   const { passwordChangedAt } = req.user;
 
-
-  // const changedTimeStamp = parseInt(this.passwordChangedAt, 10);
-  // if (changedTimeStamp && new Date(req.user.iat * 1000) < changedTimeStamp) {
-  //   //return res.status(401).json({ message: 'Unauthorized - Password has been changed' });
-  //   return next(new AppError('User recently changed password! Please log in again.', 401))
-  // }
-};
+//   const changedTimeStamp = parseInt(this.passwordChangedAt, 10);
+//   if (changedTimeStamp && new Date(req.user.iat * 1000) < changedTimeStamp) {
+//     //return res.status(401).json({ message: 'Unauthorized - Password has been changed' });
+//     return next(new AppError('User recently changed password! Please log in again.', 401))
+//   }
+// };
 
 userSchema.methods.createPaswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString('hex');
